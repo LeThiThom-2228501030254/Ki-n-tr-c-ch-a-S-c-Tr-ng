@@ -1,0 +1,2801 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Du lịch kiến trúc chùa </title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/uongsong_1.js"></script>
+        <script src="data/VUNG_HUYEN_2.js"></script>
+        <script src="data/Nuoc_3.js"></script>
+        <script src="data/Duonggiaothong_4.js"></script>
+        <script src="data/trua_5.js"></script>
+        <script src="data/Theohuyen_6.js"></script>
+        <script src="data/Theocap_7.js"></script>
+        <script src="data/Theokhoangtuoi_8.js"></script>
+        <script src="data/Theotuoi_9.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[9.17984034133617,105.09842439436979],[10.112713860641701,106.84130516458451]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>Du lịch kiến trúc chùa </h2>';
+        };
+        title.addTo(map);
+        var abstract = new L.Control({'position':'bottomright'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+
+                abstract.show();
+                return this._div;
+            };
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'Đây là website do sinh viên Lê Thị Thơm thực hiện để hiện thị về phân hạng theo chùa ở Sóc Trăng';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_Positron_0');
+        map.getPane('pane_Positron_0').style.zIndex = 400;
+        var layer_Positron_0 = L.tileLayer('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+            pane: 'pane_Positron_0',
+            opacity: 1.0,
+            attribution: '<a href="https://cartodb.com/basemaps/">Map tiles by CartoDB, under CC BY 3.0. Data by OpenStreetMap, under ODbL.</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_Positron_0;
+        map.addLayer(layer_Positron_0);
+        function pop_uongsong_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['F_CODE_DES'] !== null ? autolinker.link(String(feature.properties['F_CODE_DES']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYC_DESCRI'] !== null ? autolinker.link(String(feature.properties['HYC_DESCRI']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAM'] !== null ? autolinker.link(String(feature.properties['NAM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISO'] !== null ? autolinker.link(String(feature.properties['ISO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME_0'] !== null ? autolinker.link(String(feature.properties['NAME_0']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_uongsong_1_0() {
+            return {
+                pane: 'pane_uongsong_1',
+                opacity: 1,
+                color: 'rgba(47,196,233,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_uongsong_1');
+        map.getPane('pane_uongsong_1').style.zIndex = 401;
+        map.getPane('pane_uongsong_1').style['mix-blend-mode'] = 'normal';
+        var layer_uongsong_1 = new L.geoJson(json_uongsong_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_uongsong_1',
+            layerName: 'layer_uongsong_1',
+            pane: 'pane_uongsong_1',
+            onEachFeature: pop_uongsong_1,
+            style: style_uongsong_1_0,
+        });
+        bounds_group.addLayer(layer_uongsong_1);
+        map.addLayer(layer_uongsong_1);
+        function pop_VUNG_HUYEN_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_0'] !== null ? autolinker.link(String(feature.properties['ID_0']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISO'] !== null ? autolinker.link(String(feature.properties['ISO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME_0'] !== null ? autolinker.link(String(feature.properties['NAME_0']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_1'] !== null ? autolinker.link(String(feature.properties['ID_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME_1'] !== null ? autolinker.link(String(feature.properties['NAME_1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_2'] !== null ? autolinker.link(String(feature.properties['ID_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME_2'] !== null ? autolinker.link(String(feature.properties['NAME_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TYPE_2'] !== null ? autolinker.link(String(feature.properties['TYPE_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ENGTYPE_2'] !== null ? autolinker.link(String(feature.properties['ENGTYPE_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NL_NAME_2'] !== null ? autolinker.link(String(feature.properties['NL_NAME_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VARNAME_2'] !== null ? autolinker.link(String(feature.properties['VARNAME_2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_VUNG_HUYEN_2_0(feature) {
+            switch(String(feature.properties['NAME_2'])) {
+                case 'Châu Thành':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,25,28,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Cù Lao Dung':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,91,59,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kế Sách':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(249,157,89,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Long My':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,201,128,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Long Phú':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,237,170,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mỹ Tú':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(236,247,185,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mỹ Xuyên':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(199,232,173,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Ngã Năm':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(157,211,166,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Thanh Trì':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(100,171,176,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Vĩnh Châu':
+                    return {
+                pane: 'pane_VUNG_HUYEN_2',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(43,131,186,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_VUNG_HUYEN_2');
+        map.getPane('pane_VUNG_HUYEN_2').style.zIndex = 402;
+        map.getPane('pane_VUNG_HUYEN_2').style['mix-blend-mode'] = 'normal';
+        var layer_VUNG_HUYEN_2 = new L.geoJson(json_VUNG_HUYEN_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_VUNG_HUYEN_2',
+            layerName: 'layer_VUNG_HUYEN_2',
+            pane: 'pane_VUNG_HUYEN_2',
+            onEachFeature: pop_VUNG_HUYEN_2,
+            style: style_VUNG_HUYEN_2_0,
+        });
+        bounds_group.addLayer(layer_VUNG_HUYEN_2);
+        map.addLayer(layer_VUNG_HUYEN_2);
+        function pop_Nuoc_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISO'] !== null ? autolinker.link(String(feature.properties['ISO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COUNTRY'] !== null ? autolinker.link(String(feature.properties['COUNTRY']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['F_CODE_DES'] !== null ? autolinker.link(String(feature.properties['F_CODE_DES']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYC_DESCRI'] !== null ? autolinker.link(String(feature.properties['HYC_DESCRI']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAME'] !== null ? autolinker.link(String(feature.properties['NAME']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Nuoc_3_0() {
+            return {
+                pane: 'pane_Nuoc_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(35,239,232,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Nuoc_3');
+        map.getPane('pane_Nuoc_3').style.zIndex = 403;
+        map.getPane('pane_Nuoc_3').style['mix-blend-mode'] = 'normal';
+        var layer_Nuoc_3 = new L.geoJson(json_Nuoc_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Nuoc_3',
+            layerName: 'layer_Nuoc_3',
+            pane: 'pane_Nuoc_3',
+            onEachFeature: pop_Nuoc_3,
+            style: style_Nuoc_3_0,
+        });
+        bounds_group.addLayer(layer_Nuoc_3);
+        map.addLayer(layer_Nuoc_3);
+        function pop_Duonggiaothong_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['MED_DESCRI'] !== null ? autolinker.link(String(feature.properties['MED_DESCRI']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['RTT_DESCRI'] !== null ? autolinker.link(String(feature.properties['RTT_DESCRI']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['F_CODE_DES'] !== null ? autolinker.link(String(feature.properties['F_CODE_DES']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISO'] !== null ? autolinker.link(String(feature.properties['ISO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ISOCOUNTRY'] !== null ? autolinker.link(String(feature.properties['ISOCOUNTRY']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Duonggiaothong_4_0() {
+            return {
+                pane: 'pane_Duonggiaothong_4',
+                opacity: 1,
+                color: 'rgba(202,10,20,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Duonggiaothong_4');
+        map.getPane('pane_Duonggiaothong_4').style.zIndex = 404;
+        map.getPane('pane_Duonggiaothong_4').style['mix-blend-mode'] = 'normal';
+        var layer_Duonggiaothong_4 = new L.geoJson(json_Duonggiaothong_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Duonggiaothong_4',
+            layerName: 'layer_Duonggiaothong_4',
+            pane: 'pane_Duonggiaothong_4',
+            onEachFeature: pop_Duonggiaothong_4,
+            style: style_Duonggiaothong_4_0,
+        });
+        bounds_group.addLayer(layer_Duonggiaothong_4);
+        map.addLayer(layer_Duonggiaothong_4);
+        function pop_trua_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Building</th>\
+                        <td class="visible-with-data" id="Building">' + (feature.properties['Building'] !== null ? autolinker.link(String(feature.properties['Building']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td class="visible-with-data" id="Address">' + (feature.properties['Address'] !== null ? autolinker.link(String(feature.properties['Address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo tuoi</th>\
+                        <td class="visible-with-data" id="old">' + (feature.properties['old'] !== null ? autolinker.link(String(feature.properties['old']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo huyen</th>\
+                        <td class="visible-with-data" id="HUYEN">' + (feature.properties['HUYEN'] !== null ? autolinker.link(String(feature.properties['HUYEN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo cap</th>\
+                        <td class="visible-with-data" id="Classilica">' + (feature.properties['Classilica'] !== null ? autolinker.link(String(feature.properties['Classilica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo khoang tuoi</th>\
+                        <td class="visible-with-data" id="Ager">' + (feature.properties['Ager'] !== null ? autolinker.link(String(feature.properties['Ager']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_trua_5_0() {
+            return {
+                pane: 'pane_trua_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,113,141,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_trua_5');
+        map.getPane('pane_trua_5').style.zIndex = 405;
+        map.getPane('pane_trua_5').style['mix-blend-mode'] = 'normal';
+        var layer_trua_5 = new L.geoJson(json_trua_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_trua_5',
+            layerName: 'layer_trua_5',
+            pane: 'pane_trua_5',
+            onEachFeature: pop_trua_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_trua_5_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_trua_5);
+        map.addLayer(layer_trua_5);
+        function pop_Theohuyen_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Building</th>\
+                        <td class="visible-with-data" id="Building">' + (feature.properties['Building'] !== null ? autolinker.link(String(feature.properties['Building']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td class="visible-with-data" id="Address">' + (feature.properties['Address'] !== null ? autolinker.link(String(feature.properties['Address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo tuoi</th>\
+                        <td class="visible-with-data" id="old">' + (feature.properties['old'] !== null ? autolinker.link(String(feature.properties['old']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo huyen</th>\
+                        <td class="visible-with-data" id="HUYEN">' + (feature.properties['HUYEN'] !== null ? autolinker.link(String(feature.properties['HUYEN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo cap</th>\
+                        <td class="visible-with-data" id="Classilica">' + (feature.properties['Classilica'] !== null ? autolinker.link(String(feature.properties['Classilica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo khoang tuoi</th>\
+                        <td class="visible-with-data" id="Ager">' + (feature.properties['Ager'] !== null ? autolinker.link(String(feature.properties['Ager']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Theohuyen_6_0(feature) {
+            switch(String(feature.properties['HUYEN'])) {
+                case 'CHAU THANH':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(48,18,59,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'CU LAO DUNG':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(70,98,216,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'KE SACH':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(53,171,248,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'LONG MY':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(27,229,181,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'LONG PHU':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(116,254,93,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'MY TU':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,239,52,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'MY XUYEN':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(251,185,56,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'NGA NAM':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(245,105,24,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'THANH TRI':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,41,3,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'VINH CHAU':
+                    return {
+                pane: 'pane_Theohuyen_6',
+                radius: 12.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(122,4,3,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Theohuyen_6');
+        map.getPane('pane_Theohuyen_6').style.zIndex = 406;
+        map.getPane('pane_Theohuyen_6').style['mix-blend-mode'] = 'normal';
+        var layer_Theohuyen_6 = new L.geoJson(json_Theohuyen_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Theohuyen_6',
+            layerName: 'layer_Theohuyen_6',
+            pane: 'pane_Theohuyen_6',
+            onEachFeature: pop_Theohuyen_6,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Theohuyen_6_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Theohuyen_6);
+        map.addLayer(layer_Theohuyen_6);
+        function pop_Theocap_7(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Building</th>\
+                        <td class="visible-with-data" id="Building">' + (feature.properties['Building'] !== null ? autolinker.link(String(feature.properties['Building']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td class="visible-with-data" id="Address">' + (feature.properties['Address'] !== null ? autolinker.link(String(feature.properties['Address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo tuoi</th>\
+                        <td class="visible-with-data" id="old">' + (feature.properties['old'] !== null ? autolinker.link(String(feature.properties['old']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo huyen</th>\
+                        <td class="visible-with-data" id="HUYEN">' + (feature.properties['HUYEN'] !== null ? autolinker.link(String(feature.properties['HUYEN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo cap</th>\
+                        <td class="visible-with-data" id="Classilica">' + (feature.properties['Classilica'] !== null ? autolinker.link(String(feature.properties['Classilica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo khoang tuoi</th>\
+                        <td class="visible-with-data" id="Ager">' + (feature.properties['Ager'] !== null ? autolinker.link(String(feature.properties['Ager']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Theocap_7_0(feature) {
+            switch(String(feature.properties['Classilica'])) {
+                case 'Cấp quốc gia':
+                    return {
+                pane: 'pane_Theocap_7',
+                radius: 10.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,0,4,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Cấp tỉnh':
+                    return {
+                pane: 'pane_Theocap_7',
+                radius: 10.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(182,55,122,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Chưa phân hạng':
+                    return {
+                pane: 'pane_Theocap_7',
+                radius: 10.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,253,191,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Theocap_7');
+        map.getPane('pane_Theocap_7').style.zIndex = 407;
+        map.getPane('pane_Theocap_7').style['mix-blend-mode'] = 'normal';
+        var layer_Theocap_7 = new L.geoJson(json_Theocap_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Theocap_7',
+            layerName: 'layer_Theocap_7',
+            pane: 'pane_Theocap_7',
+            onEachFeature: pop_Theocap_7,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Theocap_7_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Theocap_7);
+        map.addLayer(layer_Theocap_7);
+        function pop_Theokhoangtuoi_8(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Building</th>\
+                        <td class="visible-with-data" id="Building">' + (feature.properties['Building'] !== null ? autolinker.link(String(feature.properties['Building']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td class="visible-with-data" id="Address">' + (feature.properties['Address'] !== null ? autolinker.link(String(feature.properties['Address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo tuoi</th>\
+                        <td class="visible-with-data" id="old">' + (feature.properties['old'] !== null ? autolinker.link(String(feature.properties['old']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo huyen</th>\
+                        <td class="visible-with-data" id="HUYEN">' + (feature.properties['HUYEN'] !== null ? autolinker.link(String(feature.properties['HUYEN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo cap</th>\
+                        <td class="visible-with-data" id="Classilica">' + (feature.properties['Classilica'] !== null ? autolinker.link(String(feature.properties['Classilica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo khoang tuoi</th>\
+                        <td class="visible-with-data" id="Ager">' + (feature.properties['Ager'] !== null ? autolinker.link(String(feature.properties['Ager']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Theokhoangtuoi_8_0(feature) {
+            switch(String(feature.properties['Ager'])) {
+                case '<50':
+                    return {
+                pane: 'pane_Theokhoangtuoi_8',
+                radius: 7.6,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(230,97,1,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '>500':
+                    return {
+                pane: 'pane_Theokhoangtuoi_8',
+                radius: 7.6,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,184,99,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '100-300':
+                    return {
+                pane: 'pane_Theokhoangtuoi_8',
+                radius: 6.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,247,247,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '300-500':
+                    return {
+                pane: 'pane_Theokhoangtuoi_8',
+                radius: 7.6,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(178,171,210,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '50-100':
+                    return {
+                pane: 'pane_Theokhoangtuoi_8',
+                radius: 7.6,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(94,60,153,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Theokhoangtuoi_8');
+        map.getPane('pane_Theokhoangtuoi_8').style.zIndex = 408;
+        map.getPane('pane_Theokhoangtuoi_8').style['mix-blend-mode'] = 'normal';
+        var layer_Theokhoangtuoi_8 = new L.geoJson(json_Theokhoangtuoi_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Theokhoangtuoi_8',
+            layerName: 'layer_Theokhoangtuoi_8',
+            pane: 'pane_Theokhoangtuoi_8',
+            onEachFeature: pop_Theokhoangtuoi_8,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Theokhoangtuoi_8_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Theokhoangtuoi_8);
+        map.addLayer(layer_Theokhoangtuoi_8);
+        function pop_Theotuoi_9(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(String(feature.properties['Name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Building</th>\
+                        <td class="visible-with-data" id="Building">' + (feature.properties['Building'] !== null ? autolinker.link(String(feature.properties['Building']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td class="visible-with-data" id="Address">' + (feature.properties['Address'] !== null ? autolinker.link(String(feature.properties['Address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo tuoi</th>\
+                        <td class="visible-with-data" id="old">' + (feature.properties['old'] !== null ? autolinker.link(String(feature.properties['old']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo huyen</th>\
+                        <td class="visible-with-data" id="HUYEN">' + (feature.properties['HUYEN'] !== null ? autolinker.link(String(feature.properties['HUYEN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo cap</th>\
+                        <td class="visible-with-data" id="Classilica">' + (feature.properties['Classilica'] !== null ? autolinker.link(String(feature.properties['Classilica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Phan hang theo khoang tuoi</th>\
+                        <td class="visible-with-data" id="Ager">' + (feature.properties['Ager'] !== null ? autolinker.link(String(feature.properties['Ager']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Theotuoi_9_0(feature) {
+            switch(String(feature.properties['old'])) {
+                case '21':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(207,52,35,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '22':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(126,222,174,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '34':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,83,227,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '50':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(220,199,13,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '52':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(224,86,148,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '53':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(21,89,207,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '54':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(125,216,127,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '58':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(225,146,128,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '60':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,205,23,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '61':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(39,66,239,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '62':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(57,240,91,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '68':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(225,69,113,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '70':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,148,38,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '71':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(100,21,203,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '72':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(165,23,212,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '74':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,165,50,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '77':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(116,55,230,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '88':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(149,204,20,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '115':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(133,202,55,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '124':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,218,229,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '126':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(117,237,235,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '129':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(143,108,240,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '130':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(195,240,121,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '131':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(66,235,57,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '132':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(142,123,220,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '135':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(48,160,235,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '136':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(50,88,239,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '138':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(63,223,170,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '141':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(222,43,138,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '144':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(119,124,226,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '152':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(134,229,159,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '153':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(150,240,136,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '159':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(151,212,125,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '162':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(23,17,204,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '165':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,30,75,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '182':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(222,40,49,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '188':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(37,239,108,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '195':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,71,229,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '210':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,146,100,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '221':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(30,219,184,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '225':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,69,20,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '227':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(80,187,219,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '242':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(56,222,72,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '245':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,175,113,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '246':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(105,209,181,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '252':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,47,115,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '254':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,123,194,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '275':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(140,226,69,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '276':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(192,204,26,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '287':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(68,204,190,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '298':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,132,223,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '300':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(94,159,221,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '319':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(223,126,192,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '331':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(220,39,33,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '347':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(231,229,84,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '349':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(194,140,231,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '350':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(178,58,238,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '357':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(130,196,227,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '359':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(97,79,230,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '361':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(119,172,237,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '377':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(219,70,162,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '404':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(206,233,53,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '407':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(122,226,183,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '410':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(186,231,40,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '416':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(30,79,203,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '440':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(125,233,58,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '449':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(213,46,188,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '456':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,169,130,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '488':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(64,209,234,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '492':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(139,74,200,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '518':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(204,109,198,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '530':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(56,235,131,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '560':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(219,194,68,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '801':
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(228,72,92,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_Theotuoi_9',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,125,18,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Theotuoi_9');
+        map.getPane('pane_Theotuoi_9').style.zIndex = 409;
+        map.getPane('pane_Theotuoi_9').style['mix-blend-mode'] = 'normal';
+        var layer_Theotuoi_9 = new L.geoJson(json_Theotuoi_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Theotuoi_9',
+            layerName: 'layer_Theotuoi_9',
+            pane: 'pane_Theotuoi_9',
+            onEachFeature: pop_Theotuoi_9,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Theotuoi_9_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_Theotuoi_9);
+        map.addLayer(layer_Theotuoi_9);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: 'Theo tuoi<br /><table><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_210.png" /></td><td>21</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_221.png" /></td><td>22</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_342.png" /></td><td>34</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_503.png" /></td><td>50</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_524.png" /></td><td>52</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_535.png" /></td><td>53</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_546.png" /></td><td>54</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_587.png" /></td><td>58</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_608.png" /></td><td>60</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_619.png" /></td><td>61</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_6210.png" /></td><td>62</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_6811.png" /></td><td>68</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_7012.png" /></td><td>70</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_7113.png" /></td><td>71</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_7214.png" /></td><td>72</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_7415.png" /></td><td>74</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_7716.png" /></td><td>77</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_8817.png" /></td><td>88</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_11518.png" /></td><td>115</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_12419.png" /></td><td>124</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_12620.png" /></td><td>126</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_12921.png" /></td><td>129</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13022.png" /></td><td>130</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13123.png" /></td><td>131</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13224.png" /></td><td>132</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13525.png" /></td><td>135</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13626.png" /></td><td>136</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_13827.png" /></td><td>138</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_14128.png" /></td><td>141</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_14429.png" /></td><td>144</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_15230.png" /></td><td>152</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_15331.png" /></td><td>153</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_15932.png" /></td><td>159</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_16233.png" /></td><td>162</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_16534.png" /></td><td>165</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_18235.png" /></td><td>182</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_18836.png" /></td><td>188</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_19537.png" /></td><td>195</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_21038.png" /></td><td>210</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_22139.png" /></td><td>221</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_22540.png" /></td><td>225</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_22741.png" /></td><td>227</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_24242.png" /></td><td>242</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_24543.png" /></td><td>245</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_24644.png" /></td><td>246</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_25245.png" /></td><td>252</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_25446.png" /></td><td>254</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_27547.png" /></td><td>275</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_27648.png" /></td><td>276</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_28749.png" /></td><td>287</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_29850.png" /></td><td>298</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_30051.png" /></td><td>300</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_31952.png" /></td><td>319</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_33153.png" /></td><td>331</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_34754.png" /></td><td>347</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_34955.png" /></td><td>349</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_35056.png" /></td><td>350</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_35757.png" /></td><td>357</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_35958.png" /></td><td>359</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_36159.png" /></td><td>361</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_37760.png" /></td><td>377</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_40461.png" /></td><td>404</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_40762.png" /></td><td>407</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_41063.png" /></td><td>410</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_41664.png" /></td><td>416</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_44065.png" /></td><td>440</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_44966.png" /></td><td>449</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_45667.png" /></td><td>456</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_48868.png" /></td><td>488</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_49269.png" /></td><td>492</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_51870.png" /></td><td>518</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_53071.png" /></td><td>530</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_56072.png" /></td><td>560</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_80173.png" /></td><td>801</td></tr><tr><td style="text-align: center;"><img src="legend/Theotuoi_9_74.png" /></td><td></td></tr></table>', layer: layer_Theotuoi_9},
+            {label: 'Theo khoang tuoi<br /><table><tr><td style="text-align: center;"><img src="legend/Theokhoangtuoi_8_500.png" /></td><td><50</td></tr><tr><td style="text-align: center;"><img src="legend/Theokhoangtuoi_8_5001.png" /></td><td>>500</td></tr><tr><td style="text-align: center;"><img src="legend/Theokhoangtuoi_8_1003002.png" /></td><td>100-300</td></tr><tr><td style="text-align: center;"><img src="legend/Theokhoangtuoi_8_3005003.png" /></td><td>300-500</td></tr><tr><td style="text-align: center;"><img src="legend/Theokhoangtuoi_8_501004.png" /></td><td>50-100</td></tr></table>', layer: layer_Theokhoangtuoi_8},
+            {label: 'Theo cap<br /><table><tr><td style="text-align: center;"><img src="legend/Theocap_7_Cấpquốcgia0.png" /></td><td>Cấp quốc gia</td></tr><tr><td style="text-align: center;"><img src="legend/Theocap_7_Cấptỉnh1.png" /></td><td>Cấp tỉnh</td></tr><tr><td style="text-align: center;"><img src="legend/Theocap_7_Chưaphânhạng2.png" /></td><td>Chưa phân hạng</td></tr></table>', layer: layer_Theocap_7},
+            {label: 'Theo huyen<br /><table><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_CHAUTHANH0.png" /></td><td>CHAU THANH</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_CULAODUNG1.png" /></td><td>CU LAO DUNG</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_KESACH2.png" /></td><td>KE SACH</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_LONGMY3.png" /></td><td>LONG MY</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_LONGPHU4.png" /></td><td>LONG PHU</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_MYTU5.png" /></td><td>MY TU</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_MYXUYEN6.png" /></td><td>MY XUYEN</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_NGANAM7.png" /></td><td>NGA NAM</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_THANHTRI8.png" /></td><td>THANH TRI</td></tr><tr><td style="text-align: center;"><img src="legend/Theohuyen_6_VINHCHAU9.png" /></td><td>VINH CHAU</td></tr></table>', layer: layer_Theohuyen_6},
+            {label: '<img src="legend/trua_5.png" /> trua', layer: layer_trua_5},
+            {label: '<img src="legend/Duonggiaothong_4.png" /> Duong giao thong', layer: layer_Duonggiaothong_4},
+            {label: '<img src="legend/Nuoc_3.png" /> Nuoc', layer: layer_Nuoc_3},
+            {label: 'VUNG_HUYEN<br /><table><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_ChâuThành0.png" /></td><td>Châu Thành</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_CùLaoDung1.png" /></td><td>Cù Lao Dung</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_KếSách2.png" /></td><td>Kế Sách</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_LongMy3.png" /></td><td>Long My</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_LongPhú4.png" /></td><td>Long Phú</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_MỹTú5.png" /></td><td>Mỹ Tú</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_MỹXuyên6.png" /></td><td>Mỹ Xuyên</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_NgãNăm7.png" /></td><td>Ngã Năm</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_ThanhTrì8.png" /></td><td>Thanh Trì</td></tr><tr><td style="text-align: center;"><img src="legend/VUNG_HUYEN_2_VĩnhChâu9.png" /></td><td>Vĩnh Châu</td></tr></table>', layer: layer_VUNG_HUYEN_2},
+            {label: '<img src="legend/uongsong_1.png" /> Đuong song', layer: layer_uongsong_1},
+            {label: "Positron", layer: layer_Positron_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_trua_5,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Ager'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"old": "int","Ager": "str","Classilica": "str","HUYEN": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_old = document.createElement("div");
+            div_old.id = "div_old";
+            div_old.className = "slider";
+            document.getElementById("menu").appendChild(div_old);
+            var lab_old = document.createElement('div');
+            lab_old.innerHTML  = 'old: <span id="val_old"></span>';
+            lab_old.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_old);
+            var reset_old = document.createElement('div');
+            reset_old.innerHTML = 'clear filter';
+            reset_old.className = 'filterlabel';
+            lab_old.className = 'filterlabel';
+            reset_old.onclick = function() {
+                sel_old.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_old);
+            var sel_old = document.getElementById('div_old');
+            noUiSlider.create(sel_old, {
+                connect: true,
+                start: [21, 801],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 21,
+                max: 801
+                }
+            });
+            sel_old.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_old = document.getElementById('val_old');
+            val_old.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Ager = document.createElement('div');
+            div_Ager.id = "div_Ager";
+            div_Ager.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Ager);
+            sel_Ager = document.createElement('select');
+            sel_Ager.multiple = true;
+            sel_Ager.size = 5;
+            sel_Ager.id = "sel_Ager";
+            var Ager_options_str = "<option value='' unselected></option>";
+            sel_Ager.onchange = function(){filterFunc()};
+            Ager_options_str  += '<option value="100-300">100-300</option>';
+            Ager_options_str  += '<option value="300-500">300-500</option>';
+            Ager_options_str  += '<option value="50-100">50-100</option>';
+            Ager_options_str  += '<option value="<50"><50</option>';
+            Ager_options_str  += '<option value=">500">>500</option>';
+            sel_Ager.innerHTML = Ager_options_str;
+            div_Ager.appendChild(sel_Ager);
+            var lab_Ager = document.createElement('div');
+            lab_Ager.innerHTML = 'Ager';
+            lab_Ager.className = 'filterlabel';
+            div_Ager.appendChild(lab_Ager);
+            var reset_Ager = document.createElement('div');
+            reset_Ager.innerHTML = 'clear filter';
+            reset_Ager.className = 'filterlabel';
+            reset_Ager.onclick = function() {
+                var options = document.getElementById("sel_Ager").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Ager.appendChild(reset_Ager);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Classilica = document.createElement('div');
+            div_Classilica.id = "div_Classilica";
+            div_Classilica.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Classilica);
+            sel_Classilica = document.createElement('select');
+            sel_Classilica.multiple = true;
+            sel_Classilica.size = 3;
+            sel_Classilica.id = "sel_Classilica";
+            var Classilica_options_str = "<option value='' unselected></option>";
+            sel_Classilica.onchange = function(){filterFunc()};
+            Classilica_options_str  += '<option value="Chưa phân hạng">Chưa phân hạng</option>';
+            Classilica_options_str  += '<option value="Cấp quốc gia">Cấp quốc gia</option>';
+            Classilica_options_str  += '<option value="Cấp tỉnh">Cấp tỉnh</option>';
+            sel_Classilica.innerHTML = Classilica_options_str;
+            div_Classilica.appendChild(sel_Classilica);
+            var lab_Classilica = document.createElement('div');
+            lab_Classilica.innerHTML = 'Classilica';
+            lab_Classilica.className = 'filterlabel';
+            div_Classilica.appendChild(lab_Classilica);
+            var reset_Classilica = document.createElement('div');
+            reset_Classilica.innerHTML = 'clear filter';
+            reset_Classilica.className = 'filterlabel';
+            reset_Classilica.onclick = function() {
+                var options = document.getElementById("sel_Classilica").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Classilica.appendChild(reset_Classilica);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_HUYEN = document.createElement('div');
+            div_HUYEN.id = "div_HUYEN";
+            div_HUYEN.className= "filterselect";
+            document.getElementById("menu").appendChild(div_HUYEN);
+            sel_HUYEN = document.createElement('select');
+            sel_HUYEN.multiple = true;
+            sel_HUYEN.size = 10;
+            sel_HUYEN.id = "sel_HUYEN";
+            var HUYEN_options_str = "<option value='' unselected></option>";
+            sel_HUYEN.onchange = function(){filterFunc()};
+            HUYEN_options_str  += '<option value="CHAU THANH">CHAU THANH</option>';
+            HUYEN_options_str  += '<option value="CU LAO DUNG">CU LAO DUNG</option>';
+            HUYEN_options_str  += '<option value="KE SACH">KE SACH</option>';
+            HUYEN_options_str  += '<option value="LONG MY">LONG MY</option>';
+            HUYEN_options_str  += '<option value="LONG PHU">LONG PHU</option>';
+            HUYEN_options_str  += '<option value="MY TU">MY TU</option>';
+            HUYEN_options_str  += '<option value="MY XUYEN">MY XUYEN</option>';
+            HUYEN_options_str  += '<option value="NGA NAM">NGA NAM</option>';
+            HUYEN_options_str  += '<option value="THANH TRI">THANH TRI</option>';
+            HUYEN_options_str  += '<option value="VINH CHAU">VINH CHAU</option>';
+            sel_HUYEN.innerHTML = HUYEN_options_str;
+            div_HUYEN.appendChild(sel_HUYEN);
+            var lab_HUYEN = document.createElement('div');
+            lab_HUYEN.innerHTML = 'HUYEN';
+            lab_HUYEN.className = 'filterlabel';
+            div_HUYEN.appendChild(lab_HUYEN);
+            var reset_HUYEN = document.createElement('div');
+            reset_HUYEN.innerHTML = 'clear filter';
+            reset_HUYEN.className = 'filterlabel';
+            reset_HUYEN.onclick = function() {
+                var options = document.getElementById("sel_HUYEN").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_HUYEN.appendChild(reset_HUYEN);
+        resetLabels([layer_VUNG_HUYEN_2,layer_trua_5,layer_Theohuyen_6,layer_Theocap_7,layer_Theokhoangtuoi_8,layer_Theotuoi_9]);
+        map.on("zoomend", function(){
+            resetLabels([layer_VUNG_HUYEN_2,layer_trua_5,layer_Theohuyen_6,layer_Theocap_7,layer_Theokhoangtuoi_8,layer_Theotuoi_9]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_VUNG_HUYEN_2,layer_trua_5,layer_Theohuyen_6,layer_Theocap_7,layer_Theokhoangtuoi_8,layer_Theotuoi_9]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_VUNG_HUYEN_2,layer_trua_5,layer_Theohuyen_6,layer_Theocap_7,layer_Theokhoangtuoi_8,layer_Theotuoi_9]);
+        });
+        </script>
+    </body>
+</html>
